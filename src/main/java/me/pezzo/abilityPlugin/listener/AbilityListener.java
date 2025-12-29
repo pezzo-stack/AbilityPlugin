@@ -2,6 +2,7 @@ package me.pezzo.abilityPlugin.listener;
 
 import me.pezzo.abilityPlugin.AbilityPlugin;
 import me.pezzo.abilityPlugin.config.data.ability.BlackholeData;
+import me.pezzo.abilityPlugin.config.data.ability.BluHollowData;
 import me.pezzo.abilityPlugin.config.data.ability.DashData;
 import me.pezzo.abilityPlugin.config.data.ability.LeechFieldData;
 import org.bukkit.ChatColor;
@@ -19,21 +20,15 @@ public record AbilityListener(AbilityPlugin plugin) implements Listener {
     public void onInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         Action action = event.getAction();
-
         if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
-
             ItemStack item = player.getInventory().getItemInMainHand();
             if (item == null || item.getType() == Material.AIR) return;
             if (!item.hasItemMeta() || !item.getItemMeta().hasDisplayName()) return;
-
             String name = item.getItemMeta().getDisplayName();
-
-            // Ottieni i dati delle abilità dal config
             var dashData = plugin.getAbilityConfig().getDashData();
             var blackholeData = plugin.getAbilityConfig().getBlackholeData();
             var leechData = plugin.getAbilityConfig().getLeechFieldData();
-
-            // Controlla che i dati esistano prima di usarli
+            var bluData = plugin.getAbilityConfig().getBluHollowData();
             if (dashData != null && dashData.getName() != null) {
                 String dashName = ChatColor.translateAlternateColorCodes('&', dashData.getName());
                 if (name.equals(dashName)) {
@@ -42,7 +37,6 @@ public record AbilityListener(AbilityPlugin plugin) implements Listener {
                     return;
                 }
             }
-
             if (blackholeData != null && blackholeData.getName() != null) {
                 String blackholeName = ChatColor.translateAlternateColorCodes('&', blackholeData.getName());
                 if (name.equals(blackholeName)) {
@@ -51,7 +45,14 @@ public record AbilityListener(AbilityPlugin plugin) implements Listener {
                     return;
                 }
             }
-
+            if (bluData != null && bluData.getName() != null) {
+                String bluName = ChatColor.translateAlternateColorCodes('&', bluData.getName());
+                if (name.equals(bluName)) {
+                    plugin.getAbilityManager().executeBluHollow(player);
+                    event.setCancelled(true);
+                    return;
+                }
+            }
             if (leechData != null && leechData.getName() != null) {
                 String leechName = ChatColor.translateAlternateColorCodes('&', leechData.getName());
                 if (name.equals(leechName)) {

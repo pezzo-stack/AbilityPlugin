@@ -1,4 +1,3 @@
-// Sostituisci la porzione pertinente della tua AbilityConfig con questa versione aggiornata (intero file)
 package me.pezzo.abilityPlugin.config;
 
 import me.pezzo.abilityPlugin.AbilityPlugin;
@@ -6,6 +5,7 @@ import me.pezzo.abilityPlugin.config.data.AbilityData;
 import me.pezzo.abilityPlugin.config.data.ability.BlackholeData;
 import me.pezzo.abilityPlugin.config.data.ability.DashData;
 import me.pezzo.abilityPlugin.config.data.ability.LeechFieldData;
+import me.pezzo.abilityPlugin.config.data.ability.BluHollowData;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -15,34 +15,18 @@ import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.util.*;
 
-/**
- * AbilityConfig gestisce il caricamento delle ability e ora supporta reload con
- * differenze (added/removed/modified) basate sul contenuto dei file.
- *
- * Key normalizzate: lower-case e rimozione di caratteri non alfanumerici, es:
- * "Leech_Field" -> "leechfield".
- */
 public class AbilityConfig {
     private final AbilityPlugin plugin;
     private final File abilitiesFolder;
-    // chiave normalizzata -> AbilityData
     private final Map<String, AbilityData> abilities = new HashMap<>();
-
-    // cache raw yaml e hash per rilevare modifiche (key normalizzata -> cfg/hash)
     private final Map<String, YamlConfiguration> rawConfigs = new HashMap<>();
     private final Map<String, String> fileHashes = new HashMap<>();
-
-    // expected defaults (nome base file senza estensione)
-    private static final List<String> EXPECTED_DEFAULTS = List.of("dash", "blackhole", "leechfield");
+    private static final List<String> EXPECTED_DEFAULTS = List.of("dash", "blackhole", "leechfield", "bluhollow");
 
     public AbilityConfig(AbilityPlugin plugin) {
         this.plugin = plugin;
         this.abilitiesFolder = new File(plugin.getDataFolder(), "abilities");
-
-        if (!abilitiesFolder.exists()) {
-            abilitiesFolder.mkdirs();
-        }
-
+        if (!abilitiesFolder.exists()) abilitiesFolder.mkdirs();
         migrateFromPluginsFolder();
         loadAbilities();
     }
@@ -50,7 +34,6 @@ public class AbilityConfig {
     private void migrateFromPluginsFolder() {
         File pluginsDir = plugin.getDataFolder().getParentFile();
         if (pluginsDir == null || !pluginsDir.exists()) return;
-
         for (String fname : EXPECTED_DEFAULTS) {
             String fnameYml = fname + ".yml";
             File src = new File(pluginsDir, fnameYml);
@@ -79,7 +62,8 @@ public class AbilityConfig {
                     case "dash" -> createDefaultDashConfig(f);
                     case "blackhole" -> createDefaultBlackholeConfig(f);
                     case "leechfield" -> createDefaultLeechFieldConfig(f);
-                    default -> { /* no-op */ }
+                    case "bluhollow" -> createDefaultBluHollowConfig(f);
+                    default -> { }
                 }
             }
         }
@@ -89,21 +73,16 @@ public class AbilityConfig {
         abilities.clear();
         rawConfigs.clear();
         fileHashes.clear();
-
         ensureDefaultFilesExists();
-
-        File[] files = abilitiesFolder.listFiles((d, name) -> name.toLowerCase().endsWith(".yml"));
+        File[] files = abilitiesFolder.listFiles((d, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
         if (files == null || files.length == 0) return;
-
         for (File f : files) {
             String base = f.getName().toLowerCase(Locale.ROOT);
             if (base.endsWith(".yml")) base = base.substring(0, base.length() - 4);
-
             String key = normalizeKey(base);
             YamlConfiguration cfg = YamlConfiguration.loadConfiguration(f);
             rawConfigs.put(key, cfg);
             fileHashes.put(key, computeHash(f));
-
             try {
                 switch (key) {
                     case "dash" -> {
@@ -118,10 +97,10 @@ public class AbilityConfig {
                     }
                     case "blackhole" -> {
                         BlackholeData blackholeData = new BlackholeData(
-                                cfg.getString("name", "&aBlackhole"),
-                                cfg.getString("lore", "&fAbilita per attirare i nemici a se"),
-                                parseMaterial(cfg.getString("item", "BLACK_DYE"), Material.BLACK_DYE),
-                                cfg.getDouble("damage", 3.0),
+                                cfg.getString("name", "&4Bagliore Rosso"),
+                                cfg.getString("lore", "&cBagliore rosso. Attira e danneggia i nemici."),
+                                parseMaterial(cfg.getString("item", "RED_DYE"), Material.RED_DYE),
+                                cfg.getDouble("damage", 4.0),
                                 cfg.getDouble("range", 20.0),
                                 cfg.getLong("cooldown", 180000)
                         );
@@ -141,6 +120,20 @@ public class AbilityConfig {
                                 cfg.getLong("cooldown", 45000)
                         );
                         abilities.put(key, leechData);
+                    }
+                    case "bluhollow" -> {
+                        BluHollowData blu = new BluHollowData(
+                                cfg.getString("name", "&9Bagliore Blu"),
+                                cfg.getString("lore", "&bBagliore blu. Una palla distruttiva che avanza dove guardi."),
+                                parseMaterial(cfg.getString("item", "BLUE_DYE"), Material.BLUE_DYE),
+                                cfg.getDouble("damage", 8.0),
+                                cfg.getDouble("radius", 4.0),
+                                cfg.getDouble("speed", 0.8),
+                                cfg.getInt("duration_ticks", 120),
+                                cfg.getBoolean("destroy_blocks", true),
+                                cfg.getLong("cooldown", 240000)
+                        );
+                        abilities.put(key, blu);
                     }
                     default -> plugin.getLogger().info("File abilità non riconosciuto (ignorato): " + f.getName());
                 }
@@ -168,27 +161,19 @@ public class AbilityConfig {
         config.set("item", "FEATHER");
         config.set("boost", 4.0);
         config.set("cooldown", 4000);
-        try {
-            config.save(file);
-        } catch (IOException e) {
-            plugin.getLogger().severe("Impossibile creare il file dash.yml: " + e.getMessage());
-        }
+        try { config.save(file); } catch (IOException e) { plugin.getLogger().severe("Impossibile creare il file dash.yml: " + e.getMessage()); }
     }
 
     private void createDefaultBlackholeConfig(File file) {
         if (file.exists()) return;
         YamlConfiguration config = new YamlConfiguration();
-        config.set("name", "&aBlackhole");
-        config.set("lore", "&fAbilita per attirare i nemici a se");
-        config.set("item", "BLACK_DYE");
+        config.set("name", "&4Bagliore Rosso");
+        config.set("lore", "&cBagliore rosso. Attira e danneggia i nemici.");
+        config.set("item", "RED_DYE");
         config.set("damage", 4.0);
         config.set("range", 20.0);
-        config.set("cooldown", 4000);
-        try {
-            config.save(file);
-        } catch (IOException e) {
-            plugin.getLogger().severe("Impossibile creare il file blackhole.yml: " + e.getMessage());
-        }
+        config.set("cooldown", 180000);
+        try { config.save(file); } catch (IOException e) { plugin.getLogger().severe("Impossibile creare il file blackhole.yml: " + e.getMessage()); }
     }
 
     private void createDefaultLeechFieldConfig(File file) {
@@ -204,17 +189,27 @@ public class AbilityConfig {
         config.set("knockback_reduce", 0.0);
         config.set("slowness_level", 1);
         config.set("cooldown", 45000);
-        try {
-            config.save(file);
-        } catch (IOException e) {
-            plugin.getLogger().severe("Impossibile creare il file leechfield.yml: " + e.getMessage());
-        }
+        try { config.save(file); } catch (IOException e) { plugin.getLogger().severe("Impossibile creare il file leechfield.yml: " + e.getMessage()); }
+    }
+
+    private void createDefaultBluHollowConfig(File file) {
+        if (file.exists()) return;
+        YamlConfiguration config = new YamlConfiguration();
+        config.set("name", "&9Bagliore Blu");
+        config.set("lore", "&bBagliore blu. Una palla distruttiva che avanza dove guardi.");
+        config.set("item", "BLUE_DYE");
+        config.set("damage", 8.0);
+        config.set("radius", 4.0);
+        config.set("speed", 0.8);
+        config.set("duration_ticks", 120);
+        config.set("destroy_blocks", true);
+        config.set("cooldown", 240000);
+        try { config.save(file); } catch (IOException e) { plugin.getLogger().severe("Impossibile creare il file bluhollow.yml: " + e.getMessage()); }
     }
 
     public synchronized ReloadResult reload() {
         plugin.getLogger().info("Ricaricamento configurazioni abilità in corso...");
         migrateFromPluginsFolder();
-
         File[] files = abilitiesFolder.listFiles((d, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
         Map<String, File> currentFiles = new HashMap<>();
         if (files != null) {
@@ -224,22 +219,18 @@ public class AbilityConfig {
                 currentFiles.put(normalizeKey(base), f);
             }
         }
-
         Set<String> prevKeys = new HashSet<>(fileHashes.keySet());
         Set<String> currKeys = new HashSet<>(currentFiles.keySet());
-
         List<String> added = new ArrayList<>();
         List<String> removed = new ArrayList<>();
         List<String> modified = new ArrayList<>();
         Map<String, List<String>> modifiedDetails = new HashMap<>();
-
         for (String k : currKeys) {
             if (!prevKeys.contains(k)) added.add(k);
         }
         for (String k : prevKeys) {
             if (!currKeys.contains(k)) removed.add(k);
         }
-
         for (String k : currKeys) {
             if (prevKeys.contains(k)) {
                 try {
@@ -258,9 +249,7 @@ public class AbilityConfig {
                 }
             }
         }
-
         loadAbilities();
-
         plugin.getLogger().info("Ricaricamento configurazioni abilità completato. Added=" + added.size() + " Removed=" + removed.size() + " Modified=" + modified.size());
         return new ReloadResult(added, removed, modified, modifiedDetails);
     }
@@ -269,11 +258,9 @@ public class AbilityConfig {
         List<String> diffs = new ArrayList<>();
         Map<String, Object> oldMap = oldCfg == null ? Collections.emptyMap() : oldCfg.getValues(false);
         Map<String, Object> newMap = newCfg == null ? Collections.emptyMap() : newCfg.getValues(false);
-
         Set<String> allKeys = new HashSet<>();
         allKeys.addAll(oldMap.keySet());
         allKeys.addAll(newMap.keySet());
-
         for (String key : allKeys) {
             Object oldVal = oldMap.get(key);
             Object newVal = newMap.get(key);
@@ -321,6 +308,11 @@ public class AbilityConfig {
     public LeechFieldData getLeechFieldData() {
         AbilityData data = abilities.get("leechfield");
         return data instanceof LeechFieldData ? (LeechFieldData) data : null;
+    }
+
+    public BluHollowData getBluHollowData() {
+        AbilityData data = abilities.get("bluhollow");
+        return data instanceof BluHollowData ? (BluHollowData) data : null;
     }
 
     public static class ReloadResult {
