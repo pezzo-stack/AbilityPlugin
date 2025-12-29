@@ -1,6 +1,6 @@
 package me.pezzo.abilityPlugin;
 
-import me.pezzo.abilityPlugin.abilities.AbilityConfig;
+import me.pezzo.abilityPlugin.config.AbilityConfig;
 import me.pezzo.abilityPlugin.commands.AbilityCommand;
 import me.pezzo.abilityPlugin.config.AbilityConfig;
 import me.pezzo.abilityPlugin.listener.AbilityListener;
@@ -13,7 +13,7 @@ public final class AbilityPlugin extends JavaPlugin {
     private static AbilityPlugin instance;
     private BukkitCommandHandler commandHandler;
     private AbilityManager abilityManager;
-    private me.pezzo.abilityPlugin.config.AbilityConfig abilityConfig;
+    private AbilityConfig abilityConfig;
 
     @Override
     public void onEnable() {
@@ -59,4 +59,5 @@ public final class AbilityPlugin extends JavaPlugin {
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new AbilityListener(this), this);
     }
+
 }

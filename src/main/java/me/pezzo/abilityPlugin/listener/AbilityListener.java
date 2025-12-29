@@ -1,6 +1,8 @@
 package me.pezzo.abilityPlugin.listener;
 
 import me.pezzo.abilityPlugin.AbilityPlugin;
+import me.pezzo.abilityPlugin.config.data.ability.BlackholeData;
+import me.pezzo.abilityPlugin.config.data.ability.DashData;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -31,7 +33,7 @@ public record AbilityListener(AbilityPlugin plugin) implements Listener {
 
             // Controlla che i dati esistano prima di usarli
             if (dashData != null) {
-                String dashName = ChatColor.translateAlternateColorCodes('&', dashData.getName());
+                String dashName = ChatColor.translateAlternateColorCodes('&', DashData.getName());
                 if (name.equals(dashName)) {
                     plugin.getAbilityManager().executeDash(player);
                     event.setCancelled(true);
@@ -40,7 +42,7 @@ public record AbilityListener(AbilityPlugin plugin) implements Listener {
             }
 
             if (blackholeData != null) {
-                String blackholeName = ChatColor.translateAlternateColorCodes('&', blackholeData.getName());
+                String blackholeName = ChatColor.translateAlternateColorCodes('&', BlackholeData.getName());
                 if (name.equals(blackholeName)) {
                     plugin.getAbilityManager().executeBlackhole(player);
                     event.setCancelled(true);

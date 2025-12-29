@@ -1,5 +1,6 @@
 package me.pezzo.abilityPlugin.managers;
 
+import me.pezzo.abilityPlugin.AbilityPlugin;
 import me.pezzo.abilityPlugin.config.AbilityConfig;
 import me.pezzo.abilityPlugin.config.data.ability.BlackholeData;
 import me.pezzo.abilityPlugin.config.data.ability.DashData;
@@ -14,7 +15,7 @@ public class AbilityManager {
     private final CooldownManager cooldownManager = new CooldownManager();
     private final AbilityConfig abilityConfig;
 
-    public AbilityManager(AbilityConfig config) {
+    public AbilityManager(AbilityPlugin plugin, AbilityConfig config) {
         this.abilityConfig = config;
     }
 
